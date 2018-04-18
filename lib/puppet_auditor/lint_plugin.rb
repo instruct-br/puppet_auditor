@@ -1,5 +1,17 @@
 module PuppetAuditor
   class LintPlugin < PuppetLint::CheckPlugin
+
+    COMPARISONS = {
+      'matches'             => ->(expected, token) { token =~ expected },
+      'not_matches'         => ->(expected, token) { (token =~ expected).nil? },
+      'equals'              => ->(expected, token) { token == expected },
+      'not_equal'           => ->(expected, token) { token != expected },
+      'less_than'           => ->(expected, token) { token < expected },
+      'less_or_equal_to'    => ->(expected, token) { token <= expected },
+      'greater_than'        => ->(expected, token) { token > expected },
+      'greater_or_equal_to' => ->(expected, token) { token >= expected },
+    }
+
     def initialize
       super
       @resource   = self.class::RESOURCE
@@ -14,69 +26,30 @@ module PuppetAuditor
     private
 
     def resource_block(resource)
-      @attributes.each do |attribute_name, comparisson_rules|
+      @attributes.each do |attribute_name, comparison_rules|
         attribute = resource[:tokens].find { |t| t.type == :NAME && t.value == attribute_name && t.next_code_token.type == :FARROW }
-        attribute_block(resource, attribute, comparisson_rules) if attribute
+        attribute_block(resource, attribute, comparison_rules) if attribute
       end
     end
 
-    def attribute_block(resource, attribute, comparisson_rules)
-      value_token = attribute.next_code_token.next_code_token
-      comparisson_rules.each do |rule, value|
-        case rule
-        when 'matches'
-          matches_comparisson(resource, value_token, value)
-        when 'not_matches'
-          not_matches_comparisson(resource, value_token, value)
-        when 'equals'
-          equals_comparisson(resource, value_token, value)
-        when 'not_equal'
-          not_equal_comparssion(resource, value_token, value)
-        when 'less_than'
-          less_than_comparisson(resource, value_token, value)
-        when 'less_or_equal_to'
-          less_or_eq_comparisson(resource, value_token, value)
-        when 'greater_than'
-          greater_than_comparisson(resource, value_token, value)
-        when 'greater_or_equal_to'
-          greater_or_eq_comparisson(resource, value_token, value)
-        end
+    def attribute_block(resource, attribute, comparison_rules)
+      token = attribute.next_code_token.next_code_token
+      comparison_rules.each do |rule, value|
+        expected, token_value = cast_expected(rule, value), cast_token(token)
+        violation(resource, token) if COMPARISONS[rule].call(expected, token_value)
       end
     end
 
-    def matches_comparisson(resource, token, expected)
-      violation(resource, token) if Regexp.new(expected) =~ token_value(token)
+    def cast_expected(rule, expected)
+      case rule
+      when 'matches', 'not_matches'
+        Regexp.new(expected)
+      else
+        expected
+      end
     end
 
-    def not_matches_comparisson(resource, token, expected)
-      violation(resource, token) unless Regexp.new(expected) =~ token_value(token)
-    end
-
-    def equals_comparisson(resource, token, expected)
-      violation(resource, token) if expected == token_value(token)
-    end
-
-    def not_equal_comparisson(resource, token, expeceted)
-      violation(resource, token) if expected == token_value(token)
-    end
-
-    def less_than_comparisson(resource, token, expected)
-      violation(resource, token) if token_value(token) < expected
-    end
-
-    def less_or_eq_comparisson(resource, token, expected)
-      violation(resource, token) if token_value(token) <= expected
-    end
-
-    def greater_than_comparisson(resource, token, expected)
-      violation(resource, token) if token_value(token) > expected
-    end
-
-    def greater_or_eq_comparisson(resource, token, expected)
-      violation(resource, token) if token_value(token) >= expected
-    end
-
-    def token_value(token)
+    def cast_token(token)
       case token.type
       when :NUMBER
         token.value.to_i
