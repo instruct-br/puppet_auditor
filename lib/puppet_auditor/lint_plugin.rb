@@ -26,12 +26,18 @@ module PuppetAuditor
         case rule
         when 'matches'
           matches_comparisson(resource, value_token, value)
+        when 'equals'
+          equals_comparisson(resource, value_token, value)
         end
       end
     end
 
     def matches_comparisson(resource, token, expected)
       violation(resource, token) if Regexp.new(expected) =~ token.value
+    end
+
+    def equals_comparisson(resource, token, expected)
+      violation(resource, token) if expected == token.value
     end
 
     def violation(resource, token)
