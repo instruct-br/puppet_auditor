@@ -30,20 +30,35 @@ module PuppetAuditor
           not_matches_comparisson(resource, value_token, value)
         when 'equals'
           equals_comparisson(resource, value_token, value)
+        when 'less_than'
+          less_than_comparisson(resource, value_token, value)
         end
       end
     end
 
     def matches_comparisson(resource, token, expected)
-      violation(resource, token) if Regexp.new(expected) =~ token.value
+      violation(resource, token) if Regexp.new(expected) =~ token_value(token)
     end
 
     def not_matches_comparisson(resource, token, expected)
-      violation(resource, token) unless Regexp.new(expected) =~ token.value
+      violation(resource, token) unless Regexp.new(expected) =~ token_value(token)
     end
 
     def equals_comparisson(resource, token, expected)
-      violation(resource, token) if expected == token.value
+      violation(resource, token) if expected == token_value(token)
+    end
+
+    def less_than_comparisson(resource, token, expected)
+      violation(resource, token) if token_value(token) < expected
+    end
+
+    def token_value(token)
+      case token.type
+      when :NUMBER
+        token.value.to_i
+      else
+        token.value
+      end
     end
 
     def violation(resource, token)
