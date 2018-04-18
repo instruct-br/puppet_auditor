@@ -30,8 +30,16 @@ module PuppetAuditor
           not_matches_comparisson(resource, value_token, value)
         when 'equals'
           equals_comparisson(resource, value_token, value)
+        when 'not_equal'
+          not_equal_comparssion(resource, value_token, value)
         when 'less_than'
           less_than_comparisson(resource, value_token, value)
+        when 'less_or_equal_to'
+          less_or_eq_comparisson(resource, value_token, value)
+        when 'greater_than'
+          greater_than_comparisson(resource, value_token, value)
+        when 'greater_or_equal_to'
+          greater_or_eq_comparisson(resource, value_token, value)
         end
       end
     end
@@ -48,8 +56,24 @@ module PuppetAuditor
       violation(resource, token) if expected == token_value(token)
     end
 
+    def not_equal_comparisson(resource, token, expeceted)
+      violation(resource, token) if expected == token_value(token)
+    end
+
     def less_than_comparisson(resource, token, expected)
       violation(resource, token) if token_value(token) < expected
+    end
+
+    def less_or_eq_comparisson(resource, token, expected)
+      violation(resource, token) if token_value(token) <= expected
+    end
+
+    def greater_than_comparisson(resource, token, expected)
+      violation(resource, token) if token_value(token) > expected
+    end
+
+    def greater_or_eq_comparisson(resource, token, expected)
+      violation(resource, token) if token_value(token) >= expected
     end
 
     def token_value(token)
