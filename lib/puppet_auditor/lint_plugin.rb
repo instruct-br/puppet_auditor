@@ -2,9 +2,9 @@ module PuppetAuditor
   class LintPlugin < PuppetLint::CheckPlugin
     def initialize
       super
-      @resource = self.class::RESOURCE
+      @resource   = self.class::RESOURCE
       @attributes = self.class::ATTRIBUTES
-      @message = self.class::MESSAGE
+      @message    = self.class::MESSAGE
     end
 
     def check
@@ -26,6 +26,8 @@ module PuppetAuditor
         case rule
         when 'matches'
           matches_comparisson(resource, value_token, value)
+        when 'not_matches'
+          not_matches_comparisson(resource, value_token, value)
         when 'equals'
           equals_comparisson(resource, value_token, value)
         end
@@ -34,6 +36,10 @@ module PuppetAuditor
 
     def matches_comparisson(resource, token, expected)
       violation(resource, token) if Regexp.new(expected) =~ token.value
+    end
+
+    def not_matches_comparisson(resource, token, expected)
+      violation(resource, token) unless Regexp.new(expected) =~ token.value
     end
 
     def equals_comparisson(resource, token, expected)
