@@ -4,10 +4,6 @@ PuppetLint::Plugins.load_spec_helper
 
 module RSpec
   module AuditorExampleGroup
-    # def self.included(base)
-    #   alias_method :pplint_subject, :subject
-    # end
-
     def subject
       rules_loader = PuppetAuditor::Loader.new(yaml)
       rules_loader.generate_checks
