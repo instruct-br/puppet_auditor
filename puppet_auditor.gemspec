@@ -24,12 +24,12 @@ Gem::Specification.new do |spec|
 
   # `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^((test|spec|features)/|\..*|Jenkinsfile)}) }
   spec.files          = [
-    "Gemfile", "Gemfile.lock", "README.md", "Rakefile", "bin/console", "bin/setup",
+    "Gemfile", "Gemfile.lock", "README.md", "Rakefile", "bin/puppet_auditor",
     "lib/puppet_auditor.rb", "lib/puppet_auditor/lint_plugin.rb", "lib/puppet_auditor/loader.rb",
-    "lib/puppet_auditor/version.rb", "puppet_auditor.gemspec"
+    "lib/puppet_auditor/cli.rb", "lib/puppet_auditor/version.rb", "puppet_auditor.gemspec"
   ]
-  spec.bindir         = "exe"
-  spec.executables    = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.bindir         = "bin"
+  spec.executables    = ["puppet_auditor"]
   spec.require_paths  = ["lib"]
 
   spec.add_dependency 'puppet-lint', '>= 1.1', '< 3.0'
