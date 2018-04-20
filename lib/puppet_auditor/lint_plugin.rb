@@ -53,6 +53,10 @@ module PuppetAuditor
       case token.type
       when :NUMBER
         token.value.to_i
+      when :TRUE
+        true
+      when :FALSE
+        false
       else
         token.value
       end
