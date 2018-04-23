@@ -35,6 +35,10 @@ module PuppetAuditor
 
     def load_checks(filepath)
       File.open(filepath) { |file| @checks << Loader.new(file).generate_checks } if File.readable?(filepath)
+    rescue PuppetAuditor::Error => err
+      puts "There was an error parsing rules from #{filepath}"
+      puts err.message
+      exit 1
     end
 
     def run!
