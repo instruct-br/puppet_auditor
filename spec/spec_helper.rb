@@ -1,4 +1,3 @@
-require 'puppet-lint'
 require 'puppet_auditor'
 PuppetLint::Plugins.load_spec_helper
 
@@ -22,6 +21,6 @@ module RSpec
 end
 
 RSpec.configure do |config|
-  config.include(RSpec::LintExampleGroup)
-  config.include(RSpec::AuditorExampleGroup)
+  config.include(RSpec::LintExampleGroup, file_path: /spec\/samples/)
+  config.include(RSpec::AuditorExampleGroup, file_path: /spec\/samples/)
 end
