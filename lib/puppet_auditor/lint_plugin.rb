@@ -63,7 +63,7 @@ module PuppetAuditor
     end
 
     def violation(resource, token)
-      notify :warning, {
+      notify :error, {
         message:  @message, 
         line:     token.line, 
         column:   token.column, 
