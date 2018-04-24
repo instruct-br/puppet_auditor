@@ -45,7 +45,7 @@ describe 'no_sudoers_fileline' do
     end
 
     it 'should create a warning' do
-      expect(problems).to contain_warning(msg).on_line(2).in_column(17)
+      expect(problems).to contain_error(msg).on_line(2).in_column(17)
     end
   end
 end

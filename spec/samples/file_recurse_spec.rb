@@ -44,7 +44,7 @@ describe 'no_recurse_on_files' do
     end
 
     it 'should create a warning' do
-      expect(problems).to contain_warning(msg).on_line(3).in_column(20)
+      expect(problems).to contain_error(msg).on_line(3).in_column(20)
     end
   end
 end

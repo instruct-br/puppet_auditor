@@ -43,7 +43,7 @@ describe 'no_rm_inside_exec' do
     end
 
     it 'should create a warning' do
-      expect(problems).to contain_warning(msg).on_line(2).in_column(20)
+      expect(problems).to contain_error(msg).on_line(2).in_column(20)
     end
   end
 end

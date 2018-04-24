@@ -43,7 +43,7 @@ describe 'fixed_file_ensure' do
     end
 
     it 'should create a warning' do
-      expect(problems).to contain_warning(msg).on_line(2).in_column(19)
+      expect(problems).to contain_error(msg).on_line(2).in_column(19)
     end
   end
 end
