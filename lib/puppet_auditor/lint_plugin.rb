@@ -57,6 +57,18 @@ module PuppetAuditor
         true
       when :FALSE
         false
+      when :DQPRE # String with variables
+        full_str = token.value
+        next_token = token
+        while next_token.type != :DQPOST
+          next_token = next_token.next_code_token
+          if next_token.type == :VARIABLE
+            full_str += "${#{next_token.value}}"
+          else
+            full_str += next_token.value
+          end
+        end
+        full_str
       else
         token.value
       end
