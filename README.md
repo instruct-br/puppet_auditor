@@ -1,35 +1,71 @@
 # PuppetAuditor
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/puppet_auditor`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+PuppetAuditor is a tool to test Puppet Code against a set of defined rules.
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Install PuppetAuditor with the gem command:
 
-```ruby
-gem 'puppet_auditor'
 ```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install puppet_auditor
+$ gem install puppet_auditor
+```
 
 ## Usage
 
-TODO: Write usage instructions here
+PuppetAuditor will attempt to load rules following this hierarchy:
 
-## Development
+- Rules defined in the host `/etc/puppet_auditor.yaml`
+- Rules defined in the user home `~/.puppet_auditor.yaml`
+- Rules defined in the project `$(pwd)/.puppet_auditor.yaml`
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+The yaml file with the rules should follow this format:
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+```yaml
+puppet_auditor_version: '1'
+rules:
+- name: Cant use recurse
+  resource: file
+  attributes:
+    recurse:
+      equals: true
+  message: Dont use recurse => true
+- name: Cant use latest
+  resource: package
+  attributes:
+    ensure:
+      equals: latest
+  message: Do not use latest
+```
 
-## Contributing
+The list of rules should declare individual rules with the following keys:
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/puppet_auditor.
+- `name`: a name for the defined rule
+- `resource`: which resource should this rule verify
+- `attributes`: an array of attributes that should be verified in this resource
+- `message`: The message that will appear if the rule is violated
+
+The `attributes` value should follow this structre:
+
+```yaml
+attribute:
+  comparison: value
+```
+
+Where the `attribute` is a valid attribute for the valuated resource like "ensure" or "command", 
+`comparison` is one of the comparison function availables like "equals" or "matches" and the
+`value` is the value that will be compared using the comparison function. 
+
+The following comparison functions are available:
+
+- matches (regex)
+- not_matches (regex)
+- equals
+- not_equal
+- less_than
+- less_or_equal_to
+- greater_than
+- greater_or_equal_to
+
+
+For some samples check out the `spec/samples` folder.
+
