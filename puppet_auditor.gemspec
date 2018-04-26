@@ -8,10 +8,11 @@ Gem::Specification.new do |spec|
   spec.version       = PuppetAuditor::VERSION
   spec.authors       = ["Oscar Esgalha"]
   spec.email         = ["oscar@instruct.com.br"]
+  spec.licenses      = ['MIT']
 
-  spec.summary       = %q{A puppet-lint plugin that dynamicaly load audit rules}
+  spec.summary       = %q{A tool to audit puppet manifests against a set of defined rules}
   # spec.description   = %q{TODO: Write a longer description or delete this line.}
-  # spec.homepage      = "TODO: Put your gem's website or public repo URL here."
+  spec.homepage      = "https://github.com/instruct-br/puppet_auditor"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
   # to allow pushing to a single host or delete this section to allow pushing to any host.
@@ -35,7 +36,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'puppet-lint', '>= 1.1', '< 3.0'
 
-  spec.add_development_dependency "pry"
   spec.add_development_dependency "bundler", "~> 1.16"
   spec.add_development_dependency "rake", "~> 10.0"
   spec.add_development_dependency "rspec", "~> 3.0"
