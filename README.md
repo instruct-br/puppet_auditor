@@ -1,6 +1,6 @@
 # PuppetAuditor
 
-PuppetAuditor is a tool to test Puppet Code against a set of defined rules.
+PuppetAuditor is a tool to test Puppet manifests against a set of defined rules.
 
 ## Installation
 
@@ -11,6 +11,18 @@ $ gem install puppet_auditor
 ```
 
 ## Usage
+
+After the gem is installed, the tool can be used by calling:
+```
+$ puppet_auditor
+```
+
+Use the `--help` to check usage options.
+
+The tool will check your code against the defined rules and display
+messages if it finds any violation.
+
+## Defining rules
 
 PuppetAuditor will attempt to load rules following this hierarchy:
 
@@ -23,12 +35,14 @@ The yaml file with the rules should follow this format:
 ```yaml
 puppet_auditor_version: '1'
 rules:
-- name: Cant use recurse
+- name: Dangerous file config
   resource: file
   attributes:
     recurse:
       equals: true
-  message: Dont use recurse => true
+    ensure:
+      equals: present
+  message: Dont use recurse or ambiguous ensure
 - name: Cant use latest
   resource: package
   attributes:
@@ -42,7 +56,7 @@ The list of rules should declare individual rules with the following keys:
 - `name`: a name for the defined rule
 - `resource`: which resource should this rule verify
 - `attributes`: an array of attributes that should be verified in this resource
-- `message`: The message that will appear if the rule is violated
+- `message`: text that will appear if the rule is violated
 
 The `attributes` value should follow this structre:
 
@@ -66,6 +80,10 @@ The following comparison functions are available:
 - greater_than
 - greater_or_equal_to
 
-
 For some samples check out the `spec/samples` folder.
 
+## How it works
+
+The tool will parse rules defined in the `.puppet_auditor.yaml` files and if all rules are
+valid it will dynamically generate [puppet-lint](https://github.com/rodjek/puppet-lint) plugins
+and run them to check your code.
