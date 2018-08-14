@@ -14,16 +14,57 @@ module PuppetAuditor
 
     def initialize
       super
-      @resource   = self.class::RESOURCE
-      @attributes = self.class::ATTRIBUTES
-      @message    = self.class::MESSAGE
+      @resource         = self.class::RESOURCE
+      @attributes       = self.class::ATTRIBUTES
+      @message          = self.class::MESSAGE
+      @scoped_variables = { 'global' => {} }
+      @scopes           = {}
     end
 
     def check
+      discover_scopes
+      scan_variables
       resource_indexes.each { |resource| resource_block(resource) if resource[:type].value == @resource }
     end
 
     private
+
+    def class_scopes
+      class_indexes.each do |class_hash|
+        class_name = class_hash[:tokens].first.next_code_token
+        if class_name.type == :NAME
+          @scopes["class_#{class_name.value}"] = [class_hash[:start], class_hash[:end]]
+          @scoped_variables["class_#{class_name.value}"] = {}
+        end
+      end
+    end
+
+    def scope(index)
+      @scopes.find(-> { ['global'] }) { |name, range| index.between?(*range) }.first
+    end
+
+    def token_index(unknown)
+      tokens.find_index { |indexed| indexed.line == unknown.line && indexed.column == unknown.column }
+    end
+
+    def discover_scopes
+      class_scopes
+      # TODO defined_type_indexes.each { |d| }
+      # TODO node_indexes.each { |n| }
+    end
+
+    def scan_variables
+      # This method works because:
+      # - "variable assignments are evaluation-order dependent"
+      # - "Unlike most other languages, Puppet only allows a given variable to be assigned once within a given scope"
+      #
+      # See: https://puppet.com/docs/puppet/5.5/lang_variables.html
+      tokens.each_with_index do |token, index|
+        if token.type == :VARIABLE && token.next_code_token.type == :EQUALS
+          @scoped_variables[scope(index)][token.value] = cast_token(token.next_code_token.next_code_token)
+        end
+      end
+    end
 
     def resource_block(resource)
       @attributes.each do |attribute_name, comparison_rules|
@@ -69,6 +110,8 @@ module PuppetAuditor
           end
         end
         full_str
+      when :VARIABLE
+        @scoped_variables[scope(token_index(token))][token.value]
       else
         token.value
       end
