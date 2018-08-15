@@ -32,7 +32,16 @@ module PuppetAuditor
     def class_scopes
       class_indexes.each do |class_hash|
         class_name = class_hash[:tokens].first.next_code_token
-        if class_name.type == :NAME
+        # class name { -> :NAME
+        #   (...)
+        # }
+        #
+        # class name( -> :FUNCTION_NAME
+        #   Type $parameter = 'default',
+        # ) {
+        #   (...)
+        # }
+        if class_name.type == :NAME || class_name.type == :FUNCTION_NAME
           @scopes["class_#{class_name.value}"] = [class_hash[:start], class_hash[:end]]
           @scoped_variables["class_#{class_name.value}"] = {}
         end
