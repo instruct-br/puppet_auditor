@@ -39,8 +39,38 @@ module PuppetAuditor
       end
     end
 
+    def defined_type_scopes
+      defined_type_indexes.each do |defined_type_hash|
+        defined_type_name = defined_type_hash[:tokens].first.next_code_token
+        if defined_type_name.type == :NAME
+          @scopes["dtype_#{defined_type_name.value}"] = [defined_type_hash[:start], defined_type_hash[:end]]
+          @scoped_variables["dtype_#{defined_type_name.value}"] = {}
+        end
+      end
+    end
+
+    def node_scopes
+      node_indexes.each do |node_hash|
+        node_name = node_hash[:tokens].first.next_code_token
+        if node_name.type == :SSTRING
+          @scopes["node_#{node_name.value}"] = [node_hash[:start], node_hash[:end]]
+          @scoped_variables["node_#{node_name.value}"] = {}
+        end
+      end
+    end
+
     def scope(index)
-      @scopes.find(-> { ['global'] }) { |name, range| index.between?(*range) }.first
+      @scopes.sort_by { |name, range|
+        if name.start_with?('class')
+          0
+        elsif name.start_with?('dtype')
+          1
+        elsif name.start_with?('node')
+          2
+        else
+          3
+        end
+      }.find(-> { ['global'] }) { |name, range| index.between?(*range) }.first
     end
 
     def token_index(unknown)
@@ -49,8 +79,8 @@ module PuppetAuditor
 
     def discover_scopes
       class_scopes
-      # TODO defined_type_indexes.each { |d| }
-      # TODO node_indexes.each { |n| }
+      defined_type_scopes
+      node_scopes
     end
 
     def scan_variables
