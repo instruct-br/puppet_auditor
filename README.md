@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/instruct-br/puppet_auditor.svg?branch=master)](https://travis-ci.org/instruct-br/puppet_auditor)
+[![Gem Version](https://badge.fury.io/rb/puppet_auditor.svg)](https://badge.fury.io/rb/puppet_auditor)
+
 # PuppetAuditor
 
 PuppetAuditor is a tool to test Puppet manifests against a set of defined rules.
