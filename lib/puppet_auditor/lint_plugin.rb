@@ -134,7 +134,7 @@ module PuppetAuditor
         while next_token.type != :DQPOST
           next_token = next_token.next_code_token
           if next_token.type == :VARIABLE
-            full_str += "${#{next_token.value}}"
+            full_str += cast_token(next_token) || "${#{next_token.value}}"
           else
             full_str += next_token.value
           end
