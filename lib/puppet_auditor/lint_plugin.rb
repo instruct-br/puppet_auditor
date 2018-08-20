@@ -1,3 +1,5 @@
+require 'puppet'
+
 module PuppetAuditor
   class LintPlugin < PuppetLint::CheckPlugin
 
@@ -24,10 +26,26 @@ module PuppetAuditor
     def check
       discover_scopes
       scan_variables
+      build_scope
       resource_indexes.each { |resource| resource_block(resource) if resource[:type].value == @resource }
     end
 
     private
+
+    def build_scope
+      Puppet[:hiera_config] = File.join(PuppetAuditor::Cli.path, 'hiera')
+
+      node = Puppet::Node.new('localhost')
+      node.environment = Puppet::Node::Environment.create(:_p_auditor, [])
+      Puppet.push_context({environments: Puppet::Environments::Static.new(node.environment)})
+
+      compiler = Puppet::Parser::Compiler.new(node)
+      @scope = Puppet::Parser::Scope.new(compiler)
+    end
+
+    def lookup(key)
+      Puppet::Pops::Lookup.lookup(key, nil, nil, false, :default, Puppet::Pops::Lookup::Invocation.new(@scope, {}, {}))
+    end
 
     def class_scopes
       class_indexes.each do |class_hash|
@@ -151,6 +169,19 @@ module PuppetAuditor
         full_str
       when :VARIABLE
         @scoped_variables[scope(token_index(token))][token.value]
+      when :NAME, :FUNCTION_NAME
+        if token.value == 'hiera' || token.value == 'lookup'
+          next_token = token
+          while next_token.type != :SSTRING && next_token.type != :RPAREN
+            next_token = next_token.next_code_token
+            if next_token.type == :SSTRING
+              return lookup(next_token.value)
+            elsif next_token.type == :NAME || next_token.type == :FUNCTION_NAME
+              return lookup(cast_token(next_token))
+            end
+          end
+        end
+        token.value
       else
         token.value
       end
