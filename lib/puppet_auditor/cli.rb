@@ -1,7 +1,15 @@
 module PuppetAuditor
   class Cli
+
+    @@path = ''
+
+    def self.path
+      @@path
+    end
+
     def initialize(args)
       @checks = []
+
       OptionParser.new do |opts|
         opts.banner = "Usage: puppet_auditor [options]"
 
@@ -30,6 +38,9 @@ module PuppetAuditor
         load_checks('~/.puppet_auditor.yaml')   if user_default && ENV.key?('HOME')
         load_checks('.puppet_auditor.yaml')     if project_default
         load_checks(specific_yaml_rules)        if specific_yaml_rules
+
+        @@path = File.expand_path('.')
+
       end.parse!
     end
 

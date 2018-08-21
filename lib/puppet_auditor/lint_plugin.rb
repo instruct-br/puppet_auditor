@@ -1,3 +1,5 @@
+require 'puppet'
+
 module PuppetAuditor
   class LintPlugin < PuppetLint::CheckPlugin
 
@@ -14,16 +16,112 @@ module PuppetAuditor
 
     def initialize
       super
-      @resource   = self.class::RESOURCE
-      @attributes = self.class::ATTRIBUTES
-      @message    = self.class::MESSAGE
+      @resource         = self.class::RESOURCE
+      @attributes       = self.class::ATTRIBUTES
+      @message          = self.class::MESSAGE
+      @scoped_variables = { 'global' => {} }
+      @scopes           = {}
     end
 
     def check
+      discover_scopes
+      scan_variables
+      build_scope
       resource_indexes.each { |resource| resource_block(resource) if resource[:type].value == @resource }
     end
 
     private
+
+    def build_scope
+      Puppet[:hiera_config] = File.join(PuppetAuditor::Cli.path, 'hiera')
+
+      node = Puppet::Node.new('localhost')
+      node.environment = Puppet::Node::Environment.create(:_p_auditor, [])
+      Puppet.push_context({environments: Puppet::Environments::Static.new(node.environment)})
+
+      compiler = Puppet::Parser::Compiler.new(node)
+      @scope = Puppet::Parser::Scope.new(compiler)
+    end
+
+    def lookup(key)
+      Puppet::Pops::Lookup.lookup(key, nil, nil, false, :default, Puppet::Pops::Lookup::Invocation.new(@scope, {}, {}))
+    end
+
+    def class_scopes
+      class_indexes.each do |class_hash|
+        class_name = class_hash[:tokens].first.next_code_token
+        # class name { -> :NAME
+        #   (...)
+        # }
+        #
+        # class name( -> :FUNCTION_NAME
+        #   Type $parameter = 'default',
+        # ) {
+        #   (...)
+        # }
+        if class_name.type == :NAME || class_name.type == :FUNCTION_NAME
+          @scopes["class_#{class_name.value}"] = [class_hash[:start], class_hash[:end]]
+          @scoped_variables["class_#{class_name.value}"] = {}
+        end
+      end
+    end
+
+    def defined_type_scopes
+      defined_type_indexes.each do |defined_type_hash|
+        defined_type_name = defined_type_hash[:tokens].first.next_code_token
+        if defined_type_name.type == :NAME
+          @scopes["dtype_#{defined_type_name.value}"] = [defined_type_hash[:start], defined_type_hash[:end]]
+          @scoped_variables["dtype_#{defined_type_name.value}"] = {}
+        end
+      end
+    end
+
+    def node_scopes
+      node_indexes.each do |node_hash|
+        node_name = node_hash[:tokens].first.next_code_token
+        if node_name.type == :SSTRING
+          @scopes["node_#{node_name.value}"] = [node_hash[:start], node_hash[:end]]
+          @scoped_variables["node_#{node_name.value}"] = {}
+        end
+      end
+    end
+
+    def scope(index)
+      @scopes.sort_by { |name, range|
+        if name.start_with?('class')
+          0
+        elsif name.start_with?('dtype')
+          1
+        elsif name.start_with?('node')
+          2
+        else
+          3
+        end
+      }.find(-> { ['global'] }) { |name, range| index.between?(*range) }.first
+    end
+
+    def token_index(unknown)
+      tokens.find_index { |indexed| indexed.line == unknown.line && indexed.column == unknown.column }
+    end
+
+    def discover_scopes
+      class_scopes
+      defined_type_scopes
+      node_scopes
+    end
+
+    def scan_variables
+      # This method works because:
+      # - "variable assignments are evaluation-order dependent"
+      # - "Unlike most other languages, Puppet only allows a given variable to be assigned once within a given scope"
+      #
+      # See: https://puppet.com/docs/puppet/5.5/lang_variables.html
+      tokens.each_with_index do |token, index|
+        if token.type == :VARIABLE && token.next_code_token.type == :EQUALS
+          @scoped_variables[scope(index)][token.value] = cast_token(token.next_code_token.next_code_token)
+        end
+      end
+    end
 
     def resource_block(resource)
       @attributes.each do |attribute_name, comparison_rules|
@@ -63,12 +161,27 @@ module PuppetAuditor
         while next_token.type != :DQPOST
           next_token = next_token.next_code_token
           if next_token.type == :VARIABLE
-            full_str += "${#{next_token.value}}"
+            full_str += cast_token(next_token) || "${#{next_token.value}}"
           else
             full_str += next_token.value
           end
         end
         full_str
+      when :VARIABLE
+        @scoped_variables[scope(token_index(token))][token.value]
+      when :NAME, :FUNCTION_NAME
+        if token.value == 'hiera' || token.value == 'lookup'
+          next_token = token
+          while next_token.type != :SSTRING && next_token.type != :RPAREN
+            next_token = next_token.next_code_token
+            if next_token.type == :SSTRING
+              return lookup(next_token.value)
+            elsif next_token.type == :NAME || next_token.type == :FUNCTION_NAME
+              return lookup(cast_token(next_token))
+            end
+          end
+        end
+        token.value
       else
         token.value
       end
