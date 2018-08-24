@@ -25,22 +25,21 @@ module PuppetAuditor
 
     def check
       discover_scopes
-      scan_variables
       build_scope
+      scan_variables
       resource_indexes.each { |resource| resource_block(resource) if resource[:type].value == @resource }
     end
 
     private
 
     def build_scope
-      Puppet[:hiera_config] = File.join(PuppetAuditor::Cli.path, 'hiera')
+      Puppet.settings[:hiera_config] = File.join(PuppetAuditor::Cli.path, 'hiera.yaml')
 
-      node = Puppet::Node.new('localhost')
-      node.environment = Puppet::Node::Environment.create(:_p_auditor, [])
-      Puppet.push_context({environments: Puppet::Environments::Static.new(node.environment)})
-
+      env = Puppet::Node::Environment.create(:_p_auditor, [])
+      node = Puppet::Node.new('localhost', environment: env)
+      Puppet.push_context({environments: Puppet::Environments::Static.new(env)})
       compiler = Puppet::Parser::Compiler.new(node)
-      @scope = Puppet::Parser::Scope.new(compiler)
+      @scope = compiler.topscope
     end
 
     def lookup(key)
