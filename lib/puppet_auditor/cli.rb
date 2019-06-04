@@ -10,13 +10,13 @@ module PuppetAuditor
     def initialize(args)
       @checks = []
 
+      host_default = true
+      user_default = true
+      project_default = true
+      specific_yaml_rules = nil
+
       OptionParser.new do |opts|
         opts.banner = "Usage: puppet_auditor [options]"
-
-        host_default = true
-        user_default = true
-        project_default = true
-        specific_yaml_rules = nil
       
         opts.on("--with-rules FILE", "Supply more rules from a specific yaml file") do |file|
           specific_yaml_rules = file
@@ -33,15 +33,14 @@ module PuppetAuditor
         opts.on("--no-project-defaults", "Do not atempt to load yaml rules from .puppet_auditor.yaml") do
           project_default = false
         end
-
-        load_checks('/etc/puppet_auditor.yaml') if host_default
-        load_checks('~/.puppet_auditor.yaml')   if user_default && ENV.key?('HOME')
-        load_checks('.puppet_auditor.yaml')     if project_default
-        load_checks(specific_yaml_rules)        if specific_yaml_rules
-
-        @@path = File.expand_path('.')
-
       end.parse!
+
+      load_checks('/etc/puppet_auditor.yaml') if host_default
+      load_checks('~/.puppet_auditor.yaml')   if user_default && ENV.key?('HOME')
+      load_checks('.puppet_auditor.yaml')     if project_default
+      load_checks(specific_yaml_rules)        if specific_yaml_rules
+
+      @@path = File.expand_path('.')
     end
 
     def load_checks(filepath)
